@@ -54,7 +54,7 @@ class WarThunderApi {
         );
     }
 
-    #getModesStat = async (statTitle, cb ) => {
+    #getModesStats = async (statTitle, cb ) => {
         const indexes= this.allStats.findAll( stat => stat.startsWith(statTitle) );
         const handles  = [ this.allStatHandles[indexes[0]], this.allStatHandles[indexes[1]], this.allStatHandles[indexes[3]]]
         const stats = await this.#evalHandles(handles, cb)
@@ -67,24 +67,24 @@ class WarThunderApi {
             prefers: null,
             nextUpdateIn: null,
             lastUpdate: null,
-            arcade: {},
-            realistic: {},
-            simulator: {},
+            arcade: {kd: {}, battles: {}, fragsPerBattle: {}},
+            realistic: {kd: {}, battles: {}, fragsPerBattle: {}},
+            simulator: {kd: {}, battles: {}, fragsPerBattle: {}},
         };
         const userStatsModes = [ userStats.arcade, userStats.realistic, userStats.simulator ]
         //! REASIGN ONCE DONE
-        userStatsModes.map( modeStats => Object.assign(modeStats, {
-            efficiency: null,
-            prefers: null,
-            airBattles: null,
-            groundBattles: null,
-            winrate: null,
-            KD: null,
-            groundKD: null,
-            airKD: null,
-
-        }));
-        console.log(userStats)
+        // userStatsModes.map( modeStats => Object.assign(modeStats, {
+        //     efficiency: null,
+        //     prefers: null,
+        //     airBattles: null,
+        //     groundBattles: null,
+        //     winrate: null,
+        //     kd: {},
+        //     groundkd: null,
+        //     airkd: null,
+        //     fragsPerBattle: null,
+        // }));
+        // console.log(userStats)
 
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
@@ -108,30 +108,38 @@ class WarThunderApi {
        
         const battles = await this.#getElementsData('li > div > span.badge', el => el.textContent === '0%'? null: el.textContent)
         const [airArcade, groundArcade, airRealistic, groundRealistic, airSimulator, groundSimulator] = battles;
-        userStats.arcade.airBattles = airArcade;
-        userStats.arcade.groundBattles = groundArcade;
-        userStats.realistic.airBattles = airRealistic;
-        userStats.realistic.groundBattles = groundRealistic;
-        userStats.simulator.airBattles = airSimulator;
-        userStats.simulator.groundBattles = groundSimulator;
+        userStats.arcade.battles.air = airArcade;
+        userStats.arcade.battles.ground = groundArcade;
+        userStats.realistic.battles.air = airRealistic;
+        userStats.realistic.battles.ground = groundRealistic;
+        userStats.simulator.battles.air = airSimulator;
+        userStats.simulator.battles.ground = groundSimulator;
         
         const allStats = await this.#getElementsData('li', el => el.textContent.replace(/[^a-zA-Z]/g, "").toLowerCase());
         const allStatHandles = await this.#getHandles('li');
         this.allStats = allStats;
         this.allStatHandles = allStatHandles;
 
-        const winrates = await this.#getModesStat('winrate', el => el.querySelector('span.badge').textContent )
+        const winrates = await this.#getModesStats('winrate', el => el.querySelector('span.badge').textContent )
         winrates.map( (el, ind) => userStatsModes[ind].winrate = el );
 
-        const kds =  await this.#getModesStat('killdeath', el => el.querySelector('span.badge').textContent )
-        kds.map( (el, ind) => userStatsModes[ind].KD = el );        
+        const kds =  await this.#getModesStats('killdeath', el => el.querySelector('span.badge').textContent )
+        kds.map( (el, ind) => userStatsModes[ind].kd.total = el );        
 
-        const groundKds = await this.#getModesStat('groundfragsdeath', el => el.querySelector('span.badge').textContent )
-        groundKds.map( (el, ind) => userStatsModes[ind].groundKD = el );        
+        const groundkds = await this.#getModesStats('groundfragsdeath', el => el.querySelector('span.badge').textContent )
+        groundkds.map( (el, ind) => userStatsModes[ind].kd.ground = el );        
 
-        const airKds = await this.#getModesStat('airfragsdeath', el => el.querySelector('span.badge').textContent )
-        airKds.map( (el, ind) => userStatsModes[ind].airKD = el );        
+        const airkds = await this.#getModesStats('airfragsdeath', el => el.querySelector('span.badge').textContent )
+        airkds.map( (el, ind) => userStatsModes[ind].kd.air = el );        
         
+        const fragsPerBattle = await this.#getModesStats('fragsperbattle', el => el.querySelector('span.badge').textContent )
+        fragsPerBattle.map( (el, ind) => userStatsModes[ind].fragsPerBattle.total = el );
+        
+        const airFragsPerBattle = await this.#getModesStats('airfragsbattle', el => el.querySelector('span.badge').textContent )
+        airFragsPerBattle.map( (el, ind) => userStatsModes[ind].fragsPerBattle.air = el );
+
+        const groundFragsPerBattle = await this.#getModesStats('groundfragsbattle', el => el.querySelector('span.badge').textContent )
+        groundFragsPerBattle.map( (el, ind) => userStatsModes[ind].fragsPerBattle.ground = el );
 
         await browser.close()
         return userStats;
