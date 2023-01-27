@@ -26,8 +26,10 @@ class WarThunderApi {
 
         await page.goto(statUrl);
 
-        const stats = JSON.parse(await page.evaluate( () => document.querySelector('pre').innerText))
-
+        let stats;
+        try {
+            stats = JSON.parse(await page.evaluate( () => document.querySelector('pre').innerText))
+        } catch (e) { throw WarThunderApiError.NoSuchUserError() }
         return stats.stats;
     }
 
@@ -39,7 +41,7 @@ class WarThunderApi {
 
         await this.page.goto(resumeUrl);
 
-        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent);
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
         if (!userFound) throw WarThunderApiError.NoSuchUserError();
 
 
