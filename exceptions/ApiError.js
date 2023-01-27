@@ -1,14 +1,12 @@
-module.exports = class ApiEror extends Error {
-    status;
-
+module.exports = class ApiError extends Error {
+    
     constructor(status, message){
         super(message);
         this.status = status;
     }
 
-    static BadRequestError(message) { return new ApiEror(400, message) }
+    static BadRequestError(message) { return new ApiError(400, message) }
 
-    static NotFoundError() { return new ApiEror(404, 'Not Found') }
-
+    static NotFoundError() { return new ApiError(404, 'Not Found') }
 
 }

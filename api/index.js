@@ -1,7 +1,8 @@
-const e = require('express');
 const puppeteer = require('puppeteer');
-
+const WarThunderApiError = require('./errors');
 const BASE_URL = 'https://thunderskill.com/en'
+
+//! Such nickname not found
 
 class WarThunderApi {
 
@@ -17,12 +18,12 @@ class WarThunderApi {
         };
     }
 
-    #getElementData = async (selector, cb) => {
+    #getElementData = async (selector, cb, timeout = 30000) => {
         try {
-            const elSelector = await this.page.waitForSelector(selector);
+            const elSelector = await this.page.waitForSelector(selector, {timeout});
             const data = await elSelector.evaluate(cb);
             return data;
-        } catch (err) { console.log(err); return null }
+        } catch (err) { return null }
     }
 
     #getElementsData = async (selector, cb) => {
@@ -56,41 +57,55 @@ class WarThunderApi {
 
     #getModesStats = async (statTitle, cb ) => {
         const indexes= this.allStats.findAll( stat => stat.startsWith(statTitle) );
-        const handles  = [ this.allStatHandles[indexes[0]], this.allStatHandles[indexes[1]], this.allStatHandles[indexes[3]]]
-        const stats = await this.#evalHandles(handles, cb)
+        const handles  = [ this.allStatHandles[indexes[0]], this.allStatHandles[indexes[1]], this.allStatHandles[indexes[3]]];
+        const stats = await this.#evalHandles(handles, cb);
         return stats.map( el => el === 'N/A'? null: el );
     }
 
-    getStat = async username => {
+    stat = async username => {
         const statUrl = BASE_URL + `/stat/${username}`;
         const userStats = {
             prefers: null,
             nextUpdateIn: null,
             lastUpdate: null,
-            arcade: {kd: {}, battles: {}, fragsPerBattle: {}},
-            realistic: {kd: {}, battles: {}, fragsPerBattle: {}},
-            simulator: {kd: {}, battles: {}, fragsPerBattle: {}},
+            arcade: {
+                kd: { total: null, ground: null, air: null },
+                battles: { air: null, ground: null },
+                fragsPerBattle: { total: null, air: null, ground: null },
+                resume: null,
+                winrate: null,
+                lifespan: null,
+                totalBattles: null
+            },
+            realistic: {
+                kd: { total: null, ground: null, air: null },
+                battles: { air: null, ground: null },
+                fragsPerBattle: { total: null, air: null, ground: null },
+                resume: null,
+                winrate: null,
+                lifespan: null,
+                totalBattles: null
+            },
+            simulator: {
+                kd: { total: null, ground: null, air: null },
+                battles: { air: null, ground: null },
+                fragsPerBattle: { total: null, air: null, ground: null },
+                resume: null,
+                winrate: null,
+                lifespan: null,
+                totalBattles: null
+            },
         };
-        const userStatsModes = [ userStats.arcade, userStats.realistic, userStats.simulator ]
-        //! REASIGN ONCE DONE
-        // userStatsModes.map( modeStats => Object.assign(modeStats, {
-        //     efficiency: null,
-        //     prefers: null,
-        //     airBattles: null,
-        //     groundBattles: null,
-        //     winrate: null,
-        //     kd: {},
-        //     groundkd: null,
-        //     airkd: null,
-        //     fragsPerBattle: null,
-        // }));
-        // console.log(userStats)
+        const userStatsModes = [ userStats.arcade, userStats.realistic, userStats.simulator ];
 
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
         this.page = page;
         await page.goto(statUrl);
-        
+
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
+        if (!userFound) throw WarThunderApiError.NoSuchUserError()
+
         userStats.prefers  = await this.#getElementData('div > p.prefer', el => el.textContent.replace('prefers ', ''));
        
         userStats.nextUpdateIn = await this.#getElementData('div > p.next_update', el => el.textContent.trim().replace('Next update available in ', ''))
@@ -141,6 +156,12 @@ class WarThunderApi {
         const groundFragsPerBattle = await this.#getModesStats('groundfragsbattle', el => el.querySelector('span.badge').textContent )
         groundFragsPerBattle.map( (el, ind) => userStatsModes[ind].fragsPerBattle.ground = el );
 
+        const lifespan = await this.#getModesStats('lifespan', el => el.querySelector('span.badge').textContent )
+        lifespan.map( (el, ind) => userStatsModes[ind].lifespan = el );
+
+        const totalBattles = await this.#getModesStats('totalno', el => el.querySelector('span.badge').textContent )
+        totalBattles.map( (el, ind) => userStatsModes[ind].totalBattles = el );
+
         await browser.close()
         return userStats;
     }
@@ -148,7 +169,3 @@ class WarThunderApi {
 }
 
 module.exports = new WarThunderApi();
-
-
-
-new WarThunderApi().getStat('MrPlane2002').then( stat => console.log(stat));

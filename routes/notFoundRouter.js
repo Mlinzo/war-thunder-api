@@ -1,10 +1,10 @@
 const { Router } = require("express");
-const ApiEror = require("../exceptions/ApiError");
+const ApiError = require("../exceptions/ApiError");
 
 const router = Router();
 
 router.get('*', (req, res, next) => {
-    next(ApiEror.NotFoundError())
+    next(ApiError.NotFoundError())
 })
 
 module.exports = router;
