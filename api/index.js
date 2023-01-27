@@ -7,7 +7,7 @@ const BASE_URL = 'https://thunderskill.com/en'
 class WarThunderApi {
 
     constructor() {
-        Array.prototype.findAll = function (cb) { 
+        Array.prototype.findAllIndexes = function (cb) { 
             const idxs = [];
             for (let i = this.length - 1; i >= 0; i--) {
                 if (cb(this[i])) {
@@ -18,50 +18,7 @@ class WarThunderApi {
         };
     }
 
-    #getElementData = async (selector, cb, timeout = 30000) => {
-        try {
-            const elSelector = await this.page.waitForSelector(selector, {timeout});
-            const data = await elSelector.evaluate(cb);
-            return data;
-        } catch (err) { return null }
-    }
-
-    #getElementsData = async (selector, cb) => {
-            await this.page.waitForSelector(selector);
-            const handles = await this.page.$$(selector);
-            const data = await Promise.all(
-                handles.map( async handle => { 
-                    try {
-                        return await handle.evaluate(cb);
-                    } catch (err) { console.log(err); return null; }
-                })
-            );
-            return data;
-    }
-
-    #getHandles = async selector => {
-        await this.page.waitForSelector(selector);
-        const handles = await this.page.$$(selector);
-        return handles;
-    }
-
-    #evalHandles = async (handles, cb) => {
-        return await Promise.all(
-            handles.map( async handle => { 
-                try {
-                    return await handle.evaluate(cb);
-                } catch (err) { return null; }
-            })
-        );
-    }
-
-    #getModesStats = async (statTitle, cb ) => {
-        const indexes= this.allStats.findAll( stat => stat.startsWith(statTitle) );
-        const handles  = [ this.allStatHandles[indexes[0]], this.allStatHandles[indexes[1]], this.allStatHandles[indexes[3]]];
-        const stats = await this.#evalHandles(handles, cb);
-        return stats.map( el => el === 'N/A'? null: el );
-    }
-
+    //! upgrade later, example - Oxide
     stat = async username => {
         const statUrl = BASE_URL + `/stat/${username}`;
         const userStats = {
@@ -97,10 +54,9 @@ class WarThunderApi {
             },
         };
         const userStatsModes = [ userStats.arcade, userStats.realistic, userStats.simulator ];
+       
+        const page = this.page;
 
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        this.page = page;
         await page.goto(statUrl);
 
         const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
@@ -156,14 +112,113 @@ class WarThunderApi {
         const groundFragsPerBattle = await this.#getModesStats('groundfragsbattle', el => el.querySelector('span.badge').textContent )
         groundFragsPerBattle.map( (el, ind) => userStatsModes[ind].fragsPerBattle.ground = el );
 
-        const lifespan = await this.#getModesStats('lifespan', el => el.querySelector('span.badge').textContent )
-        lifespan.map( (el, ind) => userStatsModes[ind].lifespan = el );
+        const lifespans = await this.#getModesStats('lifespan', el => el.querySelector('span.badge').textContent == 'N/A min.'? null: el.querySelector('span.badge').textContent )
+        lifespans.map( (el, ind) => userStatsModes[ind].lifespan = el );
 
         const totalBattles = await this.#getModesStats('totalno', el => el.querySelector('span.badge').textContent )
         totalBattles.map( (el, ind) => userStatsModes[ind].totalBattles = el );
 
-        await browser.close()
         return userStats;
+    }
+
+    resume = async username => {
+        const resumeUrl = BASE_URL + `/stat/${username}/resume`;
+        const resume = {
+            nickname: username,
+            resume: null,
+            preffered: null,
+            squadron: null,
+            age: null,
+            sex: null,
+            playsSince: null,
+            profile: [],
+        };
+
+        await this.page.goto(resumeUrl);
+
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent);
+        if (!userFound) throw WarThunderApiError.NoSuchUserError();
+
+        this.allResumes = await this.#getElementsData('div.profile-user-info > div.profile-info-row', el => el.textContent.replace(/[^a-zA-Z]/g, "").toLowerCase());
+        this.allResumeHandles = await this.#getHandles('div.profile-user-info > div.profile-info-row');
+        
+        resume.resume = await this.#getResumeField('nickname', el => el.querySelectorAll('div.profile-info-value > span')[1].textContent.trim());
+
+        resume.preffered = await this.#getResumeField('preferred', el => el.querySelector('div.profile-info-value').textContent.trim() );
+
+        resume.squadron = await this.#getResumeField('squadron',  el => el.querySelector('div.profile-info-value').textContent.trim() );
+
+        resume.age = await this.#getResumeField('age', el => el.querySelector('div.profile-info-value').textContent.trim());
+
+        resume.sex = await this.#getResumeField('sex', el => el.querySelector('div.profile-info-value > div').textContent.trim());
+
+        resume.playsSince = await this.#getResumeField('playssince',  el => el.querySelector('div.profile-info-value').textContent.trim() );
+
+        resume.profile = await this.#getElementsData('div.profile-info-value > a', el => el.href);
+
+        return resume;
+    }
+
+    start = async () => {
+        console.log('starting war-thunder-api..')
+        this.browser = await puppeteer.launch();
+        this.page = await this.browser.newPage();
+    }
+
+    finish = async () => {
+        console.log('finishing war-thunder-api..')
+        await this.browser.close()
+    }
+
+    #getElementData = async (selector, cb, timeout = 30000) => {
+        try {
+            const elSelector = await this.page.waitForSelector(selector, {timeout});
+            const data = await elSelector.evaluate(cb);
+            return data;
+        } catch (err) { return null; }
+    }
+
+    #getElementsData = async (selector, cb) => {
+            await this.page.waitForSelector(selector);
+            const handles = await this.page.$$(selector);
+            const data = await Promise.all(
+                handles.map( async handle => { 
+                    try {
+                        return await handle.evaluate(cb);
+                    } catch (err) {  return null; }
+                })
+            );
+            return data;
+    }
+
+    #getHandles = async selector => {
+        await this.page.waitForSelector(selector);
+        const handles = await this.page.$$(selector);
+        return handles;
+    }
+
+    #evalHandles = async (handles, cb) => {
+        return await Promise.all(
+            handles.map( async handle => { 
+                try {
+                    return await handle.evaluate(cb);
+                } catch (err) { return null; }
+            })
+        );
+    }
+
+    #getModesStats = async (statTitle, cb ) => {
+        const indexes= this.allStats.findAllIndexes( stat => stat.startsWith(statTitle) );
+        const handles  = [ this.allStatHandles[indexes[0]], this.allStatHandles[indexes[1]], this.allStatHandles[indexes[3]]];
+        const stats = await this.#evalHandles(handles, cb);
+        return stats.map( el => el === 'N/A'? null: el );
+    }
+
+    #getResumeField = async (resumeTitle, cb) => {
+        const index = this.allResumes.findIndex( field => field.startsWith(resumeTitle) );
+        const handle  = this.allResumeHandles[index];
+        const resumeField = await handle.evaluate(cb);
+        return resumeField === 'unknown'? null: resumeField;
     }
 
 }

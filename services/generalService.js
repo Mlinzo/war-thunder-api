@@ -5,6 +5,8 @@ class generalService {
     getStat = async username =>
         await api.stat(username);
     
+    getResume = async username =>
+        await api.resume(username);
 
 };
 
