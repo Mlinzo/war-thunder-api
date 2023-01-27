@@ -35,13 +35,6 @@ class WarThunderApi {
         const resumeUrl = BASE_URL + `/stat/${username}/resume`;
         const resume = {
             nickname: username,
-            resume: null,
-            preffered: null,
-            squadron: null,
-            age: null,
-            sex: null,
-            playsSince: null,
-            profile: [],
         };
 
         await this.page.goto(resumeUrl);
@@ -49,22 +42,30 @@ class WarThunderApi {
         const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent);
         if (!userFound) throw WarThunderApiError.NoSuchUserError();
 
+
         this.allResumes = await this.#getElementsData('div.profile-user-info > div.profile-info-row', el => el.textContent.replace(/[^a-zA-Z]/g, "").toLowerCase());
         this.allResumeHandles = await this.#getHandles('div.profile-user-info > div.profile-info-row');
+
+        const fieldsPromises = [
+            this.#getResumeField('nickname', el => el.querySelectorAll('div.profile-info-value > span')[1].textContent.trim()),
+            this.#getResumeField('preferred', el => el.querySelector('div.profile-info-value').textContent.trim() ),
+            this.#getResumeField('squadron',  el => el.querySelector('div.profile-info-value').textContent.trim() ),
+            this.#getResumeField('age', el => el.querySelector('div.profile-info-value').textContent.trim()),
+            this.#getResumeField('sex', el => el.querySelector('div.profile-info-value > div').textContent.trim()),
+            this.#getResumeField('playssince',  el => el.querySelector('div.profile-info-value').textContent.trim() ),
+            this.#getElementsData('div.profile-info-value > a', el => el.href)
+        ]
         
-        resume.resume = await this.#getResumeField('nickname', el => el.querySelectorAll('div.profile-info-value > span')[1].textContent.trim());
-
-        resume.preffered = await this.#getResumeField('preferred', el => el.querySelector('div.profile-info-value').textContent.trim() );
-
-        resume.squadron = await this.#getResumeField('squadron',  el => el.querySelector('div.profile-info-value').textContent.trim() );
-
-        resume.age = await this.#getResumeField('age', el => el.querySelector('div.profile-info-value').textContent.trim());
-
-        resume.sex = await this.#getResumeField('sex', el => el.querySelector('div.profile-info-value > div').textContent.trim());
-
-        resume.playsSince = await this.#getResumeField('playssince',  el => el.querySelector('div.profile-info-value').textContent.trim() );
-
-        resume.profile = await this.#getElementsData('div.profile-info-value > a', el => el.href);
+        await Promise.all(fieldsPromises)
+            .then( ([_resume, preffered, squadron, age, sex, playsSince, profile]) => {
+                resume.resume = _resume;
+                resume.preffered = preffered;
+                resume.squadron = squadron;
+                resume.age = age;
+                resume.sex = sex;
+                resume.playsSince = playsSince;
+                resume.profile = profile;
+            })
 
         return resume;
     }
