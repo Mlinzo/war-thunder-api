@@ -201,7 +201,7 @@ class WarThunderApi {
                     arcade: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[3].innerText)),
                     realistic: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[4].innerText)),
                     simulator: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[5].innerText)),
-                    details: `/api/vehicle/${await vehicle.evaluate( el => el.querySelector('td > a').href.split('/')[5])}`
+                    details: `/vehicle/${await vehicle.evaluate( el => el.querySelector('td > a').href.split('/')[5])}`
                 }
             })
         )
