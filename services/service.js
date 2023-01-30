@@ -1,6 +1,6 @@
 const api = require('../api/index.js')
 
-class generalService {
+class Service {
     
     getStat = async username =>
         await api.stat(username);
@@ -9,8 +9,8 @@ class generalService {
         await api.resume(username);
 
     getUserVehicles = async (username, mode, type, role, country) => 
-        await api.userVehicles(username, mode, type, role, country)
+        await api.userVehicles(username, mode, type, role, country);
 
 };
 
-module.exports = new generalService();
+module.exports = new Service();

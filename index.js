@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const errorMiddleware = require('./middlewares/errorMiddleware.js');
-const generalRouter = require('./routes/generalRouter.js');
-const notFoundRouter = require('./routes/notFoundRouter.js');
+const router = require('./routes/router.js');
+const routerNotFound = require('./routes/routerNotFound.js');
 const api = require('./api')
 
 const PORT = process.env.PORT ?? 8888;
@@ -13,8 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api', generalRouter);
-app.use(notFoundRouter);
+app.use('/api', router);
+app.use(routerNotFound);
 
 app.use(errorMiddleware);
 

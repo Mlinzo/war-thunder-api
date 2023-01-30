@@ -1,14 +1,14 @@
 const ApiError = require("../exceptions/ApiError");
-const generalService = require("../services/generalService");
+const service = require("../services/service");
 const validate = require("../validators");
 
-class generalController {
+class Controller {
 
     async getStat(req, res, next) {
         try {   
             console.log('GET stat endpoint call');
             const [username] = Object.values(req.params);
-            const result = await generalService.getStat(username);
+            const result = await service.getStat(username);
             return res.json(result);
         } catch (e) { next(e); }
     }
@@ -17,7 +17,7 @@ class generalController {
         try {
             console.log('GET resume endpoint call');
             const [username] = Object.values(req.params);
-            const result = await generalService.getResume(username);
+            const result = await service.getResume(username);
             return res.json(result);
         } catch (e) { next(e); }
     }
@@ -32,7 +32,7 @@ class generalController {
             const [username, mode] = Object.values(req.params);
             const {type, role, country} = req.query;
 
-            const result = await generalService.getUserVehicles(username, mode, type, role, country);
+            const result = await service.getUserVehicles(username, mode, type, role, country);
             return res.json(result);
             
         } catch (e) { next(e); }
@@ -40,4 +40,4 @@ class generalController {
 
 };
 
-module.exports = new generalController();
+module.exports = new Controller();
