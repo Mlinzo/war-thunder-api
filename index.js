@@ -20,5 +20,5 @@ app.use(errorMiddleware);
 
 app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
 
-process.on('SIGTERM', api.finish);
-process.on('SIGINT', api.finish);
+process.on('SIGTERM', async () => await api.finish());
+process.on('SIGINT', async = () => api.finish())
