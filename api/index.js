@@ -55,14 +55,14 @@ class WarThunderApi {
         ]
         
         await Promise.all(fieldsPromises)
-            .then( ([_resume, preffered, squadron, age, sex, playsSince, profile]) => {
-                resume.resume = _resume;
-                resume.preffered = preffered;
-                resume.squadron = squadron;
-                resume.age = age;
-                resume.sex = sex;
-                resume.playsSince = playsSince;
-                resume.profile = profile;
+        .then( ([_resume, preffered, squadron, age, sex, playsSince, profile]) => {
+            resume.resume = _resume;
+            resume.preffered = preffered;
+            resume.squadron = squadron;
+            resume.age = age;
+            resume.sex = sex;
+            resume.playsSince = playsSince;
+            resume.profile = profile;
         })
             
         return resume;
@@ -251,7 +251,7 @@ class WarThunderApi {
 
     #round = number => parseFloat(number.toFixed(2));
 
-    #getElementData = async (selector, cb, timeout = 30000) => {
+    #getElementData = async (selector, cb, timeout = 30000) => {    
         try {
             const elSelector = await this.page.waitForSelector(selector, {timeout});
             const data = await elSelector.evaluate(cb);
