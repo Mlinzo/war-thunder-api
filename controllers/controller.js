@@ -47,6 +47,15 @@ class Controller {
         } catch (e) { next(e); }
     }
 
+    async invitations(req, res, next) {
+        try {   
+            console.log('GET invitations endpoint call');
+            const [username] = Object.values(req.params);
+            const result = await service.invitations(username);
+            return res.json(result);
+        } catch (e) { next(e); }
+    }
+
 };
 
 module.exports = new Controller();

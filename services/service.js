@@ -14,6 +14,9 @@ class Service {
     squadHistory = async username => 
         await api.squadHistory(username);
 
+    invitations = async username => 
+        await api.invitations(username);
+
 };
 
 module.exports = new Service();

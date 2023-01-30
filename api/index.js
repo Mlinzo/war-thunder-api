@@ -124,6 +124,9 @@ class WarThunderApi {
 
         await this.page.goto(squadHistoryUrl);
 
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
+        if (!userFound) throw WarThunderApiError.NoSuchUserError();
+
         const squadsInfo = await this.#getElementsData('tbody > tr > td', el => el.innerText );
         squadsInfo.reverse();
         if (squadsInfo.length % 2 !== 0 && squadsInfo.length !== 0) 
@@ -141,6 +144,45 @@ class WarThunderApi {
         return result
     }
     
+    invitations = async username => {
+        const invitationsUrl = BASE_URL + `/stat/${username}/recruitment`;
+        const result = { squads: [] };
+        await this.page.goto(invitationsUrl);
+
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
+        if (!userFound) throw WarThunderApiError.NoSuchUserError();
+
+        const squads = await this.#getHandles('div.recruitmentAdvert');
+        await Promise.all(
+            squads.map( async squad => {
+
+                const stats = await squad.evaluate( el => [...el.querySelectorAll('div.stat > strong')].map(el => el.innerText.trim()) );
+                const players = parseInt(stats[0]);
+                const effAB = this.#round(parseInt(stats[1]) / 100);
+                const effRB = this.#round(parseInt(stats[2]) / 100);
+                const effSB = this.#round(parseInt(stats[3]) / 100);
+
+                return {
+                    shortname: await squad.evaluate( el => el.querySelector('span.squad_name').innerText.trim()),
+                    name: await squad.evaluate( el => el.querySelector('div.squad_orig_name').innerText.trim()),
+                    description: await squad.evaluate( el => el.querySelector('div.comment').innerText.trim()),
+                    requirements: await squad.evaluate( el => el.querySelector('div.requirements').innerText.trim()),
+                    stat: {
+                        players,
+                        efficiency: {
+                            arcade: effAB,
+                            realistic: effRB,
+                            simulator: effSB
+                        }
+                    }
+                    
+                }
+            })
+        ).then( squadsInfo => result.squads = squadsInfo );
+
+        return result;
+    }
+
     start = async () => {
         console.log('starting war-thunder-api..')
         this.browser = await puppeteer.launch();
@@ -151,6 +193,7 @@ class WarThunderApi {
         console.log('finishing war-thunder-api..')
         await this.browser.close()
     }
+
 
     #round = number => parseFloat(number.toFixed(2));
 
