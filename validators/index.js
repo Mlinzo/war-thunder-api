@@ -2,7 +2,7 @@ const Joi = require('joi');
 
 class Validator {
 
-    getUserVehicles = async (_obj) => {
+    vehicles = async (_obj) => {
         const typeSchema = Joi.object({
             type: Joi.string().required().pattern(/^(aviation|army)$/),
             role: Joi.string().required(),

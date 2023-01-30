@@ -155,7 +155,6 @@ class WarThunderApi {
         const squads = await this.#getHandles('div.recruitmentAdvert');
         await Promise.all(
             squads.map( async squad => {
-
                 const stats = await squad.evaluate( el => [...el.querySelectorAll('div.stat > strong')].map(el => el.innerText.trim()) );
                 const players = parseInt(stats[0]);
                 const effAB = this.#round(parseInt(stats[1]) / 100);
@@ -183,6 +182,34 @@ class WarThunderApi {
         return result;
     }
 
+    vehicles = async (type, role, country) => {
+        const convertedRole = vehicleRoleDTO[role];
+        const convertedCountry = vehicleCountryDTO[country];
+
+        const vehiclesUrl = BASE_URL + `/vehicles/#type=${type}&role=${convertedRole}&country=${convertedCountry}`;
+        const result = { period: "1 month"};
+
+        await this.page.goto(vehiclesUrl);
+
+        const vehicles = (await this.#getHandles('div.detail:not(.h) tr:not(.h)')).splice(1, );
+
+        await Promise.all(
+            vehicles.map( async vehicle => {
+                return {
+                    name: await vehicle.evaluate( el => el.querySelector('td > a').innerText),
+                    role: await vehicle.evaluate( el => el.querySelectorAll('td')[2].innerText),
+                    arcade: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[3].innerText)),
+                    realistic: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[4].innerText)),
+                    simulator: parseInt(await vehicle.evaluate( el => el.querySelectorAll('td')[5].innerText)),
+                }
+            })
+        )
+        .then( vehs => result.vehicles = vehs );
+
+        return result;
+    }
+
+
     start = async () => {
         console.log('starting war-thunder-api..')
         this.browser = await puppeteer.launch();
@@ -193,7 +220,6 @@ class WarThunderApi {
         console.log('finishing war-thunder-api..')
         await this.browser.close()
     }
-
 
     #round = number => parseFloat(number.toFixed(2));
 
@@ -224,7 +250,6 @@ class WarThunderApi {
         const handles = await from.$$(selector);
         return handles;
     }
-
 
     #getResumeField = async (resumeTitle, cb) => {
         const index = this.allResumes.findIndex( field => field.startsWith(resumeTitle) );

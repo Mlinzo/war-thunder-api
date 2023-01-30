@@ -17,6 +17,9 @@ class Service {
     invitations = async username => 
         await api.invitations(username);
 
+    vehicles = async (type, role, country) =>
+        await api.vehicles(type, role, country);
+
 };
 
 module.exports = new Service();

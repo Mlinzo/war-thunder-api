@@ -26,7 +26,7 @@ class Controller {
         try {
             console.log('GET user vehicles endpoint call');
             
-            try { await validate.getUserVehicles(req.query); }
+            try { await validate.vehicles(req.query); }
             catch (error) { console.log(error); return next(ApiError.InvalidQueryError()); }
 
             const [username, mode] = Object.values(req.params);
@@ -53,6 +53,22 @@ class Controller {
             const [username] = Object.values(req.params);
             const result = await service.invitations(username);
             return res.json(result);
+        } catch (e) { next(e); }
+    }
+
+    
+    async vehicles(req, res, next) {
+        try {
+            console.log('GET vehicles endpoint call');
+            
+            try { await validate.vehicles(req.query); }
+            catch (error) { console.log(error); return next(ApiError.InvalidQueryError()); }
+
+            const {type, role, country} = req.query;
+
+            const result = await service.vehicles(type, role, country);
+            return res.json(result);
+            
         } catch (e) { next(e); }
     }
 
