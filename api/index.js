@@ -210,6 +210,33 @@ class WarThunderApi {
         return result;
     }
     
+    vehicle = async name => {
+        const vehicleUrl = BASE_URL + `/vehicle/${name}`;
+        const result = { period: '1 month' };
+
+        const response = await this.page.goto(vehicleUrl);
+        if (response.status() !== 200) throw WarThunderApiError.NoSuchVehicleError();
+
+        const modes = await this.#getHandles('div.row.mt-5 > div');
+        await Promise.all(
+            modes.map( async mode => {
+                return {
+                    battles: parseInt(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[0].innerText)),
+                    winrate: this.#round(parseFloat(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[1].innerText)) / 100),
+                    airfragsperbattle: parseFloat(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[2].innerText)),
+                    airfragsperdeath: parseFloat(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[3].innerText)),
+                    groundfragsperbattle: parseFloat(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[4].innerText)),
+                    groundfragsperdeath: parseFloat(await mode.evaluate( el => el.querySelectorAll('ul > li > span.badge')[5].innerText)),
+                }
+            })
+        ).then( stats => {
+            result.arcade = stats[0],
+            result.realistic = stats[1],
+            result.simulator = stats[2]
+        } )
+
+        return result;
+    }
 
     start = async () => {
         console.log('starting war-thunder-api..')

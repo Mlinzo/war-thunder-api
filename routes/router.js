@@ -8,6 +8,7 @@ router.get('/:username/vehicles/:mode(arcade|realistic|simulator)', controller.u
 router.get('/:username/squad-history', controller.squadHistory)
 router.get('/:username/invitations', controller.invitations)
 router.get('/vehicles', controller.vehicles)
+router.get('/vehicle/:name', controller.vehicle)
 
 
 module.exports = router;

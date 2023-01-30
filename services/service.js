@@ -20,6 +20,9 @@ class Service {
     vehicles = async (type, role, country) =>
         await api.vehicles(type, role, country);
 
+    vehicle = async name =>
+        await api.vehicle(name);
+
 };
 
 module.exports = new Service();

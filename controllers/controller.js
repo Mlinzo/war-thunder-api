@@ -72,6 +72,14 @@ class Controller {
         } catch (e) { next(e); }
     }
 
+    async vehicle(req, res, next) {
+        try {   
+            console.log('GET vehicle endpoint call');
+            const [name] = Object.values(req.params);
+            const result = await service.vehicle(name);
+            return res.json(result);
+        } catch (e) { next(e); }
+    }
 };
 
 module.exports = new Controller();

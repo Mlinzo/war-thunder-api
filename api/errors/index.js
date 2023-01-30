@@ -7,6 +7,8 @@ class WarThunderApiError extends Error {
 
     static NoSuchUserError() { return new WarThunderApiError(400, 'Could not find the user') }
 
+    static NoSuchVehicleError() { return new WarThunderApiError(400, 'Could not find the vehicle') }
+
 }
 
 module.exports = WarThunderApiError;
