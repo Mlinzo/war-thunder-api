@@ -2,14 +2,17 @@ const api = require('../api/index.js')
 
 class Service {
     
-    getStat = async username =>
+    stat = async username =>
         await api.stat(username);
     
-    getResume = async username =>
+    resume = async username =>
         await api.resume(username);
 
-    getUserVehicles = async (username, mode, type, role, country) => 
+    userVehicles = async (username, mode, type, role, country) => 
         await api.userVehicles(username, mode, type, role, country);
+
+    squadHistory = async username => 
+        await api.squadHistory(username);
 
 };
 

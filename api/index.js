@@ -35,7 +35,6 @@ class WarThunderApi {
         const resume = {
             nickname: username,
         };
-
         await this.page.goto(resumeUrl);
 
         const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
@@ -76,6 +75,10 @@ class WarThunderApi {
         const convertedCountry = vehicleCountryDTO[country];
         const userVehiclesUrl = BASE_URL + `/stat/${username}/vehicles/${convertedMode}#type=${type}&role=${convertedRole}&country=${convertedCountry}`;
         await this.page.goto(userVehiclesUrl);
+
+        const userFound = await this.#getElementData('div.playerStat > h1.nick', el => el.textContent, 500);
+        if (!userFound) throw WarThunderApiError.NoSuchUserError();
+
         const vehicles = (await this.#getHandles('div.detail:not(.h) tr:not(.h)')).splice(1, );
 
         await Promise.all(
@@ -92,7 +95,6 @@ class WarThunderApi {
                 const groundfragsperbattle = parseFloat(await getUserVehicleParam('groundfragsbattle', async el => await el.querySelector('span.param_value').innerText ));
                 const groundfragsperdeath = parseFloat(await getUserVehicleParam('groundfragsdeath', async el => await el.querySelector('span.param_value').innerText ));
 
-                
                 return {
                     country: await vehicle.evaluate(el => el.dataset.country.match(/country_(.+) all/)[1]),
                     vehicle: await vehicle.evaluate(el => el.querySelector('span[data-action="detail_vehicle"]').textContent),
@@ -111,14 +113,34 @@ class WarThunderApi {
                 }
             })
         )
-        .then( vehStats => {
-            stat.vehicles = vehStats;
-            console.log(vehStats);
-        });
+        .then( vehStats => stat.vehicles = vehStats );
 
         return stat;
     }
 
+    squadHistory = async username => {
+        const result = { history: []};
+        const squadHistoryUrl = BASE_URL + `/stat/${username}/squad-history`;
+
+        await this.page.goto(squadHistoryUrl);
+
+        const squadsInfo = await this.#getElementsData('tbody > tr > td', el => el.innerText );
+        squadsInfo.reverse();
+        if (squadsInfo.length % 2 !== 0 && squadsInfo.length !== 0) 
+            squadsInfo.pop()
+        for (let i = 0; i < squadsInfo.length; i+=2) {
+            const squad = squadsInfo[i];
+            const date = squadsInfo[i+1];
+            const info = {
+                date,
+                squad
+            }
+            result.history.push(info);
+        }
+
+        return result
+    }
+    
     start = async () => {
         console.log('starting war-thunder-api..')
         this.browser = await puppeteer.launch();

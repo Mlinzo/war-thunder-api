@@ -4,25 +4,25 @@ const validate = require("../validators");
 
 class Controller {
 
-    async getStat(req, res, next) {
+    async stat(req, res, next) {
         try {   
             console.log('GET stat endpoint call');
             const [username] = Object.values(req.params);
-            const result = await service.getStat(username);
+            const result = await service.stat(username);
             return res.json(result);
         } catch (e) { next(e); }
     }
 
-    async getResume(req, res, next) {
+    async resume(req, res, next) {
         try {
             console.log('GET resume endpoint call');
             const [username] = Object.values(req.params);
-            const result = await service.getResume(username);
+            const result = await service.resume(username);
             return res.json(result);
         } catch (e) { next(e); }
     }
 
-    async getUserVehicles(req, res, next) {
+    async userVehicles(req, res, next) {
         try {
             console.log('GET user vehicles endpoint call');
             
@@ -32,9 +32,18 @@ class Controller {
             const [username, mode] = Object.values(req.params);
             const {type, role, country} = req.query;
 
-            const result = await service.getUserVehicles(username, mode, type, role, country);
+            const result = await service.userVehicles(username, mode, type, role, country);
             return res.json(result);
             
+        } catch (e) { next(e); }
+    }
+
+    async squadHistory(req, res, next) {
+        try {   
+            console.log('GET squad-history endpoint call');
+            const [username] = Object.values(req.params);
+            const result = await service.squadHistory(username);
+            return res.json(result);
         } catch (e) { next(e); }
     }
 
