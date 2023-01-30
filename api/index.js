@@ -213,7 +213,7 @@ class WarThunderApi {
     vehicle = async name => {
         const vehicleUrl = BASE_URL + `/vehicle/${name}`;
         const result = { period: '1 month' };
-
+        console.log(his.page.isClosed());
         const response = await this.page.goto(vehicleUrl);
         if (response.status() !== 200) throw WarThunderApiError.NoSuchVehicleError();
 
