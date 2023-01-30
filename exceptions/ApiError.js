@@ -7,6 +7,8 @@ module.exports = class ApiError extends Error {
 
     static BadRequestError(message) { return new ApiError(400, message) }
 
+    static InvalidQueryError() { return new ApiError(400, 'Invalid query') }
+
     static NotFoundError() { return new ApiError(404, 'Not Found') }
 
 }

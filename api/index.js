@@ -1,8 +1,7 @@
 const puppeteer = require('puppeteer');
 const WarThunderApiError = require('./errors');
+const { vehicleCountryDTO, vehicleModeDTO, vehicleRoleDTO} = require('./dto');
 const BASE_URL = 'https://thunderskill.com/en'
-
-//! Such nickname not found
 
 class WarThunderApi {
 
@@ -18,7 +17,6 @@ class WarThunderApi {
         };
     }
 
-    // maybe rename props later
     stat = async username => {
         const statUrl = BASE_URL + `/stat/${username}/export/json`;
        
@@ -27,9 +25,8 @@ class WarThunderApi {
         await page.goto(statUrl);
 
         let stats;
-        try {
-            stats = JSON.parse(await page.evaluate( () => document.querySelector('pre').innerText))
-        } catch (e) { throw WarThunderApiError.NoSuchUserError() }
+        try { stats = JSON.parse(await page.evaluate( () => document.querySelector('pre').innerText)); }
+        catch (e) { throw WarThunderApiError.NoSuchUserError(); }
         return stats.stats;
     }
 
@@ -67,9 +64,59 @@ class WarThunderApi {
                 resume.sex = sex;
                 resume.playsSince = playsSince;
                 resume.profile = profile;
-            })
-
+        })
+            
         return resume;
+    }
+
+    userVehicles = async (username, mode, type, role, country) => {
+        const stat = {};
+        const convertedMode = vehicleModeDTO[mode];
+        const convertedRole = vehicleRoleDTO[role];
+        const convertedCountry = vehicleCountryDTO[country];
+        const userVehiclesUrl = BASE_URL + `/stat/${username}/vehicles/${convertedMode}#type=${type}&role=${convertedRole}&country=${convertedCountry}`;
+        await this.page.goto(userVehiclesUrl);
+        const vehicles = (await this.#getHandles('div.detail:not(.h) tr:not(.h)')).splice(1, );
+
+        await Promise.all(
+            vehicles.map( async vehicle => {
+
+                const params = await this.#getHandles('ul.params > li', vehicle);
+                params.pop()
+                const paramTitles = await Promise.all( params.map( async param => await param.evaluate( el => el.querySelector('span.param_name').innerText.replace(/[^a-zA-Z]/g, "").toLowerCase() )))
+                const getUserVehicleParam = this.#genGetUserVehicleParam(paramTitles, params)
+                const airfrags = parseInt(await getUserVehicleParam('overallairfrags', async el => await el.querySelector('span.param_value').innerText ));
+                const airfragsperbattle = parseFloat(await getUserVehicleParam('airfragsbattle', async el => await el.querySelector('span.param_value').innerText ));
+                const airfragsperdeath = parseFloat(await getUserVehicleParam('airfragsdeath', async el => await el.querySelector('span.param_value').innerText ));
+                const groundfrags = parseInt(await getUserVehicleParam('overallgroundfrags', async el => await el.querySelector('span.param_value').innerText ));
+                const groundfragsperbattle = parseFloat(await getUserVehicleParam('groundfragsbattle', async el => await el.querySelector('span.param_value').innerText ));
+                const groundfragsperdeath = parseFloat(await getUserVehicleParam('groundfragsdeath', async el => await el.querySelector('span.param_value').innerText ));
+
+                
+                return {
+                    country: await vehicle.evaluate(el => el.dataset.country.match(/country_(.+) all/)[1]),
+                    vehicle: await vehicle.evaluate(el => el.querySelector('span[data-action="detail_vehicle"]').textContent),
+                    battles: parseInt(await vehicle.evaluate(el => el.querySelectorAll('td')[2].innerText.split(' ')[0])),
+                    winrate: this.#round(parseFloat(await vehicle.evaluate(el => el.querySelectorAll('td')[3].innerText.split(' ')[0])) / 100),
+                    respawns: parseInt(await vehicle.evaluate(el => el.querySelectorAll('ul > li > span.param_value > strong')[1].innerText)),
+                    victories: parseInt(await vehicle.evaluate(el => el.querySelectorAll('ul > li > span.param_value > strong')[2].innerText)),
+                    defeats: parseInt(await vehicle.evaluate(el => el.querySelectorAll('ul > li > span.param_value > strong')[3].innerText)),
+                    deaths: parseInt(await vehicle.evaluate(el => el.querySelectorAll('ul > li > span.param_value > strong')[4].innerText)),
+                    airfrags,
+                    airfragsperbattle,
+                    airfragsperdeath,
+                    groundfrags,
+                    groundfragsperbattle,
+                    groundfragsperdeath
+                }
+            })
+        )
+        .then( vehStats => {
+            stat.vehicles = vehStats;
+            console.log(vehStats);
+        });
+
+        return stat;
     }
 
     start = async () => {
@@ -82,6 +129,8 @@ class WarThunderApi {
         console.log('finishing war-thunder-api..')
         await this.browser.close()
     }
+
+    #round = number => parseFloat(number.toFixed(2));
 
     #getElementData = async (selector, cb, timeout = 30000) => {
         try {
@@ -104,17 +153,29 @@ class WarThunderApi {
             return data;
     }
 
-    #getHandles = async selector => {
+    #getHandles = async (selector, _from = null) => {
         await this.page.waitForSelector(selector);
-        const handles = await this.page.$$(selector);
+        const from = _from? _from: this.page
+        const handles = await from.$$(selector);
         return handles;
     }
+
 
     #getResumeField = async (resumeTitle, cb) => {
         const index = this.allResumes.findIndex( field => field.startsWith(resumeTitle) );
         const handle  = this.allResumeHandles[index];
         const resumeField = await handle.evaluate(cb);
         return resumeField === 'unknown'? null: resumeField;
+    }
+
+    #genGetUserVehicleParam =  (paramTitles, params) => {
+        return async (paramTitle, cb) => {
+            const index = paramTitles.findIndex( param => param.startsWith(paramTitle) );
+            if (index === -1) return null
+            const handle = params[index];
+            const param = await handle.evaluate(cb);
+            return param;
+        }
     }
 
 }
